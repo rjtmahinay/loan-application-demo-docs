@@ -108,7 +108,7 @@ flowchart LR
     class HITL_Collateral failure
 ```
 
-## Step 3: Risk Decision Gate (CRITICAL)
+## Step 3: Risk Decision Gate
 
 ```mermaid
 flowchart LR
