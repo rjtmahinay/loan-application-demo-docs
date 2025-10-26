@@ -1,6 +1,6 @@
-# SOFTCON PH 2025: Loan Application Demo Flow
+# SOFTCON PH 2025: Auto Loan Application Demo Flow
 
-This document contains a Mermaid diagram showing the complete flow of the loan application demo process, including all agents, API endpoints, success criteria, and failure paths.
+This document contains a workflow diagram showing the flow of the auto loan application demo process, including all agents, API endpoints, success criteria, and failure paths.
 
 ## High-Level Workflow Overview
 
