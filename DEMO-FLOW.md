@@ -58,7 +58,7 @@ flowchart LR
     CVA --> Credit_API[Credit Bureau Service<br/>POST /api/v1/credit/check]
     
     Credit_API --> Credit_Success{Credit Check<br/>Successful?}
-    Credit_Success -->|✅ Yes| Success[Returns creditScore<br/>and annualIncome<br/>Documents Verified]
+    Credit_Success -->|✅ Yes| Success[Returns creditScore<br/>and annualIncome<br/>]
     Credit_Success -->|❌ No| HITL_Credit[HITL Tool:<br/>Low/Invalid/Missing<br/>Credit Score]
     
     Success --> NextStep[Continue to<br/>Step 2]
