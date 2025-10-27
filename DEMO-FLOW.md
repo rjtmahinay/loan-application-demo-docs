@@ -1,6 +1,6 @@
-# SOFTCON PH 2025: Auto Loan Application Demo Flow
+# Loan Application Demo Flow
 
-This document contains a workflow diagram showing the flow of the auto loan application demo process, including all agents, API endpoints, success criteria, and failure paths.
+This document contains a worfklow diagram showing the complete flow of the loan application demo process, including all agents, API endpoints, success criteria, and failure paths.
 
 ## High-Level Workflow Overview
 
@@ -58,7 +58,7 @@ flowchart LR
     CVA --> Credit_API[Credit Bureau Service<br/>POST /api/v1/credit/check]
     
     Credit_API --> Credit_Success{Credit Check<br/>Successful?}
-    Credit_Success -->|✅ Yes| Success[Returns creditScore<br/>and annualIncome<br/>]
+    Credit_Success -->|✅ Yes| Success[Returns creditScore<br/>and annualIncome<br/>Documents Verified]
     Credit_Success -->|❌ No| HITL_Credit[HITL Tool:<br/>Low/Invalid/Missing<br/>Credit Score]
     
     Success --> NextStep[Continue to<br/>Step 2]
@@ -213,3 +213,8 @@ Each step has defined failure conditions that trigger Human-in-the-Loop interven
 - Credit Bureau Service: https://github.com/rjtmahinay/credit-bureau-service
 - Collateral Service: https://github.com/rjtmahinay/collateral-service 
 - Internal Risk Engine Service: https://github.com/rjtmahinay/internal-risk-engine-service
+
+## References
+
+- [watsonx Orchestrate](https://www.ibm.com/docs/en/watsonx/watson-orchestrate/base?topic=building-agents)
+- [watsonx Orchestrate Development Guidelines](https://developer.watson-orchestrate.ibm.com/getting_started/guidelines)
