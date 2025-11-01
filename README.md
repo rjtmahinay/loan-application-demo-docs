@@ -8,6 +8,7 @@ This repository contains comprehensive documentation for the Loan Application De
 
 - [Overview](#overview)
 - [Demo Architecture](#demo-architecture)
+- [watsonx Orchestrate Free Trial](#-watsonx-orchestrate-setup)
 - [API Projects](#api-projects)
 - [OpenShift Developer Sandbox Setup](#openshift-developer-sandbox-setup)
 - [Deployment Procedures](#deployment-procedures)
@@ -39,6 +40,176 @@ For detailed workflow diagrams and step-by-step processes, see [DEMO-FLOW.md](./
 | **Customer Verification Agent** | Credit checks and document verification | `POST /api/v1/credit/check` |
 | **Encumbrance Agent** | Collateral valuation and lien checks | `POST /api/v1/auto-loan/valuation/vehicle/appraise`, `GET /api/v1/encumbrances/collateral/ID/active` |
 | **Underwriting Agent** | Risk assessment evaluation | `POST /api/v1/risk-assessment/evaluate` |
+
+## 🤖 AI Agents for watsonx Orchestrate
+
+This section documents the AI agents created for the loan application workflow using watsonx Orchestrate. Each agent is designed as a specialized component that handles specific aspects of the loan processing pipeline.
+
+Learn on how to define AI agents programatically in [Authoring Agents in watsonx Orchestrate](https://developer.watson-orchestrate.ibm.com/agents/build_agent)
+
+### Agent Configuration Files
+
+The agents are configured using YAML specifications that define their behavior, tools, and integration patterns:
+
+```
+agents/
+├── markdown/                    # Documentation files
+│   ├── CUSTOMER_VERIFICATION_AGENT.md
+│   ├── ENCUMBRANCE_AGENT.md
+│   ├── LOAN_ORCHESTRATOR.md
+│   ├── REGISTRATION_AGENT.md
+│   └── UNDERWRITING_AGENT.md
+└── yaml/                        # watsonx Orchestrate configurations
+    ├── customer_verification_agent.yaml
+    ├── encumbrance_agent.yaml
+    ├── loan_orchestrator.yaml
+    ├── registration_agent.yaml
+    └── underwriting_agent.yaml
+```
+
+### Agent Specifications
+
+#### 1. Loan Orchestrator (`loan_orchestrator.yaml`)
+
+**Model**: `meta-llama/llama-3-405b-instruct`  
+**Style**: ReAct (Think-Act-Observe loop)  
+**Role**: Primary supervisor and coordinator
+
+**Key Features**:
+- **Sequential Workflow Management**: Orchestrates the 5-step loan process
+- **Dynamic Task Delegation**: Routes tasks to specialized agents based on context
+- **Error Handling & Escalation**: Manages failures and routes to manual review
+- **Data Aggregation**: Combines results from all agents for final decision
+
+**Tools**:
+- `get_customer_by_id`
+- `search_customers_by_name` 
+- `get_loan_applications_by_customer_id`
+- `start_loan_application_review`
+
+**Collaborators**: All other agents (customer_verification_agent, encumbrance_agent, registration_agent, underwriting_agent)
+
+#### 2. Customer Verification Agent (`customer_verification_agent.yaml`)
+
+**Model**: `meta-llama/llama-3-405b-instruct`  
+**Style**: Default  
+**Role**: Credit Eligibility Validator
+
+**Key Features**:
+- **Identity Validation**: Confirms applicant's SSN, firstName, lastName
+- **Credit Assessment**: Interfaces with external Credit Bureau Service
+- **Financial Metrics Extraction**: Retrieves creditScore and verified annualIncome
+- **Security Compliance**: Handles PII data according to security protocols
+
+**Tools**:
+- `perform_credit_check` (POST /api/v1/credit/check)
+
+**Primary Functions**:
+1. Receive customer data from Orchestrator
+2. Map data to CreditCheckRequest payload
+3. Execute credit check via external API
+4. Extract and return financial metrics
+5. Signal success/failure to Orchestrator
+
+#### 3. Encumbrance Agent (`encumbrance_agent.yaml`)
+
+**Model**: `meta-llama/llama-3-405b-instruct`  
+**Style**: Default  
+**Role**: Collateral Quality & Legal Status Validator
+
+**Key Features**:
+- **Sequential Processing**: Performs valuation first, then lien check
+- **Vehicle Valuation**: Determines current market value of collateral
+- **Legal Verification**: Confirms no active liens or encumbrances
+- **Risk Mitigation**: Prevents lending against compromised collateral
+
+**Tools**:
+- `appraise_vehicle_value` (POST /api/v1/auto-loan/valuation/vehicle/appraise)
+- `get_active_encumbrances_by_collateral` (GET /api/v1/encumbrances/collateral/{id}/active)
+
+**Primary Functions**:
+1. Receive vehicle details (VIN, make, model, year, zipCode)
+2. Execute vehicle appraisal to get collateralId and market value
+3. Perform lien check using collateralId
+4. Return success only if both checks pass
+5. Signal specific failure reasons for escalation
+
+#### 4. Registration Agent (`registration_agent.yaml`)
+
+**Model**: `meta-llama/llama-3-405b-instruct`  
+**Style**: Default  
+**Role**: Loan Origination System (LOS) Gateway
+
+**Key Features**:
+- **Data Assembly**: Combines customer data with loan application details
+- **Dual Function**: Handles both initial submission and final approval
+- **Comprehensive Data Collection**: Manages 12 required fields for loan applications
+- **Transaction Management**: Ensures proper status tracking throughout process
+
+**Tools**:
+- `submit_loan_application` (POST /api/v1/loan-applications)
+- `approve_loan_application` (PUT /api/v1/loan-applications/{id}/approve)
+
+**Required Data Fields**:
+- `loanType`, `loanAmount`, `loanTermMonths`
+- `purpose`, `downpayment`, `monthlyDebtPayments`
+- `employmentYears`, `vin`, `make`, `year`, `model`, `zipCode`
+
+**Primary Functions**:
+1. **Initial Registration**: Collect application data and create LOS entry
+2. **Data Validation**: Ensure all required fields are present and valid
+3. **Final Approval**: Update application status to APPROVED after underwriting
+4. **Status Management**: Track application through SUBMITTED → APPROVED states
+
+#### 5. Underwriting Agent (`underwriting_agent.yaml`)
+
+**Model**: `meta-llama/llama-3-405b-instruct`  
+**Style**: Default  
+**Role**: Final Automated Decision-Maker
+
+**Key Features**:
+- **Risk Model Execution**: Interfaces with Internal Risk Engine Service
+- **Comprehensive Data Aggregation**: Combines all validated data into single payload
+- **Binary Decision Making**: Returns clear approve/deny recommendation
+- **Interest Rate Calculation**: Provides recommended rate for approved applications
+
+**Tools**:
+- `evaluate_loan_application_risk` (POST /api/v1/risk-assessment/evaluate)
+
+**Primary Functions**:
+1. Aggregate data from all previous agents (credit, collateral, loan terms)
+2. Construct comprehensive LoanApplication payload
+3. Execute risk assessment via Internal Risk Engine
+4. Extract approvalRecommendation and recommendedInterestRate
+5. Signal final decision to Orchestrator for completion or escalation
+
+### Configuration Standards
+
+All agents follow consistent YAML configuration standards:
+
+```yaml
+spec_version: v1
+kind: native
+name: <agent_name>
+llm: meta-llama/llama-3-405b-instruct
+style: default | react
+hide_reasoning: False
+description: |
+  <Multi-line agent description>
+instructions: |
+  <Detailed behavior instructions and guidelines>
+collaborators: []  # List of other agents (for Orchestrator only)
+tools: []          # List of available tools/APIs
+knowledge_base: []
+restrictions: editable
+```
+
+## 🌐 watsonx Orchestrate Setup
+
+- Follow the steps in [Free Trial Documentation](https://www.ibm.com/docs/en/watsonx/watson-orchestrate/base?topic=orchestrate-accessing-trial-version)
+- The free trial version has 2 default available models:
+   - `meta-llama/llama-3-405b-instruct`
+   - `meta-llama/llama-3-2-90b-vision-instruct`
 
 ## 🚀 API Projects
 
